@@ -227,20 +227,37 @@
             // Gom dữ liệu từ 3 vòng
             for (let i = 0; i < 3; i++) {
                 const roundData = teamsData[i] || [];
+                
+                // 1. Tìm điểm cao nhất của mỗi đội trong vòng hiện tại
+                const bestInRound = new Map();
+                
                 roundData.forEach(team => {
-                    // Dùng tên làm khóa (không phân biệt hoa/thường để gom chính xác)
+                    // Dùng tên làm khóa (không phân biệt hoa/thường)
                     const key = team.name.trim().toLowerCase(); 
+                    if (!bestInRound.has(key)) {
+                        bestInRound.set(key, team);
+                    } else {
+                        const currentBest = bestInRound.get(key);
+                        // Cập nhật nếu điểm cao hơn HOẶC (điểm bằng nhưng thời gian thấp hơn)
+                        if (team.score > currentBest.score || (team.score === currentBest.score && team.timeSec < currentBest.timeSec)) {
+                            bestInRound.set(key, team);
+                        }
+                    }
+                });
+
+                // 2. Cộng dồn kết quả TỐT NHẤT của vòng này vào tổng kết
+                bestInRound.forEach((bestTeam, key) => {
                     if (!map.has(key)) {
                         map.set(key, { 
-                            id: team.id + '_total', 
-                            name: team.name, // Giữ nguyên cách viết của lần xuất hiện đầu
+                            id: bestTeam.id + '_total', 
+                            name: bestTeam.name, // Giữ nguyên cách viết của lần xuất hiện đầu
                             score: 0, 
                             timeSec: 0 
                         });
                     }
                     const aggregated = map.get(key);
-                    aggregated.score += team.score;
-                    aggregated.timeSec += team.timeSec;
+                    aggregated.score += bestTeam.score;
+                    aggregated.timeSec += bestTeam.timeSec;
                 });
             }
 
@@ -263,7 +280,7 @@
             const currentLastUpdated = lastUpdatedData[currentTab];
 
             if (currentTab === 3) {
-                els.footerInfo.textContent = "Hệ thống tự động cộng dồn điểm và thời gian của các nhóm có tên trùng nhau ở cả 3 vòng.";
+                els.footerInfo.innerHTML = "Hệ thống tự động lấy <b>điểm cao nhất</b> của mỗi đội ở từng vòng để cộng lại thành tổng.";
             } else {
                 els.footerInfo.textContent = "Dữ liệu lưu độc lập theo từng vòng. Chống lỗi máy chủ Google (có thể trễ 2-3 phút).";
             }
