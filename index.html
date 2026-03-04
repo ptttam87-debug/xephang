@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bảng Xếp Hạng - Tự Động</title>
+    <title>Bảng Xếp Hạng - 3 Vòng</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-[#f8fafc] font-sans p-4 md:p-8 min-h-screen">
-    <div class="max-w-4xl mx-auto space-y-6">
+<body class="bg-[#f8fafc] font-sans p-2 sm:p-4 md:p-8 min-h-screen">
+    <div class="max-w-5xl mx-auto space-y-4 sm:space-y-6">
         
         <!-- Header -->
-        <header class="bg-white rounded-2xl shadow-sm p-5 flex flex-col sm:flex-row items-center justify-between border-t-4 border-[#FF8C00]">
-            <div class="flex items-center gap-4 mb-4 sm:mb-0">
-                <div class="p-3 bg-orange-100 text-[#FF8C00] rounded-xl shadow-inner">
-                    <i data-lucide="trophy" class="w-8 h-8"></i>
+        <header class="bg-white rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between border-t-4 border-[#FF8C00]">
+            <div class="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-0 w-full sm:w-auto">
+                <div class="p-3 bg-orange-100 text-[#FF8C00] rounded-xl shadow-inner shrink-0">
+                    <i data-lucide="trophy" class="w-6 h-6 sm:w-8 sm:h-8"></i>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-black text-slate-800 uppercase tracking-wide">Bảng Xếp Hạng</h1>
-                    <div class="text-sm font-medium text-slate-500 flex items-center gap-2">
+                    <h1 class="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-wide">Bảng Xếp Hạng</h1>
+                    <div class="text-xs sm:text-sm font-medium text-slate-500 flex items-center gap-2 mt-1">
                         Trực tiếp từ Google Sheet 
                         <div id="last-updated-container" class="hidden"></div>
                     </div>
                 </div>
             </div>
             
-            <div class="flex items-center gap-3">
-                <button id="auto-refresh-btn" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all bg-emerald-100 text-emerald-700">
+            <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+                <button id="auto-refresh-btn" class="flex items-center gap-1 sm:gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-emerald-100 text-emerald-700">
                     <i id="auto-refresh-icon" data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>
                     <span id="auto-refresh-text">Auto: BẬT</span>
                 </button>
@@ -38,39 +38,59 @@
             </div>
         </header>
 
-        <!-- Bảng Xếp Hạng -->
+        <!-- Thanh Điều Hướng 4 Vòng (Tabs) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-row">
+            <button id="tab-0" class="flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-orange-500 text-orange-600 bg-orange-50 transition-colors flex flex-col items-center justify-center gap-1" onclick="switchTab(0)">
+                <i data-lucide="blocks" class="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block"></i>
+                <span>Vòng 1</span>
+            </button>
+            <button id="tab-1" class="flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-transparent text-slate-500 hover:bg-slate-50 transition-colors flex flex-col items-center justify-center gap-1" onclick="switchTab(1)">
+                <i data-lucide="map" class="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block"></i>
+                <span>Vòng 2</span>
+            </button>
+            <button id="tab-2" class="flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-transparent text-slate-500 hover:bg-slate-50 transition-colors flex flex-col items-center justify-center gap-1" onclick="switchTab(2)">
+                <i data-lucide="flag" class="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block"></i>
+                <span>Vòng 3</span>
+            </button>
+            <button id="tab-3" class="flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-transparent text-slate-500 hover:bg-slate-50 transition-colors flex flex-col items-center justify-center gap-1" onclick="switchTab(3)">
+                <i data-lucide="calculator" class="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block text-orange-500"></i>
+                <span class="text-slate-800">Tổng Kết</span>
+            </button>
+        </div>
+
+        <!-- Bảng Xếp Hạng Content -->
         <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100 relative">
             
-            <!-- Trạng thái Lỗi (Chỉ hiện khi chưa có data nào) -->
-            <div id="error-state" class="hidden flex flex-col items-center justify-center h-80 text-slate-400 space-y-4 bg-slate-50">
+            <!-- Trạng thái Lỗi -->
+            <div id="error-state" class="hidden flex flex-col items-center justify-center h-80 text-slate-400 space-y-4 bg-slate-50 p-6">
                 <i data-lucide="alert-triangle" class="w-16 h-16 text-red-400"></i>
-                <p class="font-bold text-xl text-slate-600">Lỗi kết nối</p>
+                <p class="font-bold text-xl text-slate-600 text-center">Lỗi cấu hình</p>
                 <p id="error-message" class="text-sm text-red-500 max-w-md text-center"></p>
             </div>
 
             <!-- Trạng thái Đang Tải -->
             <div id="loading-state" class="flex flex-col items-center justify-center h-80 space-y-3">
                 <i data-lucide="refresh-cw" class="w-10 h-10 text-[#FF8C00] animate-spin"></i>
-                <p class="text-slate-500 font-medium">Đang đồng bộ dữ liệu...</p>
+                <p class="text-slate-500 font-medium">Đang tải dữ liệu...</p>
             </div>
 
             <!-- Trạng thái Trống -->
-            <div id="empty-state" class="hidden flex flex-col items-center justify-center h-80 text-slate-400 space-y-3">
-                <i data-lucide="alert-triangle" class="w-12 h-12 text-slate-300"></i>
-                <p class="font-medium text-lg">Chưa có ai hoàn thành thử thách</p>
-                <p class="text-sm">Hãy chờ học sinh đầu tiên nộp bài nhé!</p>
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center h-80 text-slate-400 space-y-3 p-6 text-center">
+                <i data-lucide="inbox" class="w-12 h-12 text-slate-300"></i>
+                <p class="font-medium text-lg">Chưa có dữ liệu</p>
+                <p class="text-sm">Chưa có đội nào nộp bài hoặc dữ liệu đang trống.</p>
             </div>
 
             <!-- Bảng Dữ Liệu -->
             <div id="table-state" class="hidden flex-col">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse min-w-[500px]">
                         <thead>
-                            <tr class="bg-slate-800 text-white text-sm uppercase tracking-wider">
-                                <th class="py-4 px-4 font-bold w-20 text-center rounded-tl-xl">Hạng</th>
-                                <th class="py-4 px-4 font-bold">Tên Nhóm / Tuyển Thủ</th>
-                                <th class="py-4 px-4 font-bold text-center">Thời Gian</th>
-                                <th class="py-4 px-4 font-bold text-center rounded-tr-xl">Điểm Số</th>
+                            <tr class="bg-slate-800 text-white text-xs sm:text-sm uppercase tracking-wider">
+                                <th class="py-3 px-2 sm:py-4 sm:px-4 font-bold w-16 sm:w-20 text-center rounded-tl-xl">Hạng</th>
+                                <th class="py-3 px-2 sm:py-4 sm:px-4 font-bold">Tên Nhóm / Tuyển Thủ</th>
+                                <th class="py-3 px-2 sm:py-4 sm:px-4 font-bold text-center">Thời Gian</th>
+                                <th class="py-3 px-2 sm:py-4 sm:px-4 font-bold text-center rounded-tr-xl">Điểm Số</th>
                             </tr>
                         </thead>
                         <tbody id="table-body" class="divide-y divide-slate-100 bg-white relative">
@@ -79,11 +99,10 @@
                     </table>
                 </div>
                 
-                <!-- Thông báo giải thích độ trễ của Google Sheet -->
-                <div class="bg-blue-50/50 p-4 text-sm text-blue-700 flex justify-between items-center border-t border-blue-100">
+                <div class="bg-blue-50/50 p-3 sm:p-4 text-xs sm:text-sm text-blue-700 flex justify-between items-center border-t border-blue-100">
                     <p class="flex items-center gap-2">
-                        <i data-lucide="info" class="w-4 h-4 text-blue-500"></i>
-                        <span><b>Lưu ý:</b> Dữ liệu tự động được lưu để chống lỗi máy chủ. Google có thể trễ vài phút.</span>
+                        <i data-lucide="info" class="w-4 h-4 text-blue-500 shrink-0"></i>
+                        <span id="footer-info">Dữ liệu lưu độc lập theo từng vòng. Chống lỗi máy chủ Google (có thể trễ 2-3 phút).</span>
                     </p>
                 </div>
             </div>
@@ -91,20 +110,46 @@
     </div>
 
     <script>
-        // Khởi tạo icon ban đầu
         lucide.createIcons();
 
-        // Cấu hình
-        const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHO1TnlzHfMUWQsk0cm-Yc_cSV1o0CLZEqmzv59qWc-RSNbTcvVlgp7qfMfFLYw0gSEpVmfE41y7OQ/pub?output=tsv";
+        // ==========================================
+        // CẤU HÌNH LINK GOOGLE SHEET CHO 3 VÒNG
+        // ==========================================
+        const ROUNDS_CONFIG = [
+            {   // Vòng 1
+                id: 0,
+                url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHO1TnlzHfMUWQsk0cm-Yc_cSV1o0CLZEqmzv59qWc-RSNbTcvVlgp7qfMfFLYw0gSEpVmfE41y7OQ/pub?output=tsv"
+            },
+            {   // Vòng 2
+                id: 1,
+                url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRg7LLubDDw3wtNHrgKD_WZjSCBMo1S91njUtpUQGedkbuv3ITYc5lJwo5wZLoYdNie7IsdD5_yo3Y3/pub?output=tsv"
+            },
+            {   // Vòng 3
+                id: 2,
+                url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRb1A-UifPRGRraRS0cCmZbijJavpBxi_KVcMsjdkQME3QX22x7Ud60ROevXabZWJgZIZfekR3_lnDu/pub?output=tsv"
+            }
+        ];
+
+        // Trạng thái ứng dụng
+        let currentTab = 0;
         
-        // Trạng thái ứng dụng (Dùng LocalStorage làm bộ nhớ đệm thông minh)
-        let teams = JSON.parse(localStorage.getItem('wall_leaderboard_cache') || '[]');
-        let staleCount = 0; // Đếm số lần nhận được bản cache cũ
+        // Dữ liệu độc lập cho 4 tab (Tab 3 là Tổng kết)
+        let teamsData = [
+            JSON.parse(localStorage.getItem('wall_leaderboard_cache_0') || '[]'),
+            JSON.parse(localStorage.getItem('wall_leaderboard_cache_1') || '[]'),
+            JSON.parse(localStorage.getItem('wall_leaderboard_cache_2') || '[]'),
+            [] // Dữ liệu tổng hợp
+        ];
+        let staleCounts = [0, 0, 0, 0];
+        let lastUpdatedData = [null, null, null, null];
+        let errorsData = ['', '', '', ''];
+        
         let isLoading = false;
-        let error = '';
-        let lastUpdated = null;
         let isAutoRefresh = true;
         let intervalId = null;
+
+        // Tính toán tổng kết ngay từ đầu nếu có cache
+        calculateTotalData();
 
         // Các phần tử DOM
         const els = {
@@ -114,7 +159,7 @@
             refreshBtn: document.getElementById('refresh-btn'),
             refreshIcon: document.getElementById('refresh-icon'),
             lastUpdatedContainer: document.getElementById('last-updated-container'),
-            
+            footerInfo: document.getElementById('footer-info'),
             errorState: document.getElementById('error-state'),
             errorMessage: document.getElementById('error-message'),
             loadingState: document.getElementById('loading-state'),
@@ -123,7 +168,28 @@
             tableBody: document.getElementById('table-body')
         };
 
-        // Hàm parse file dữ liệu TSV
+        // Hàm chuyển Tab
+        function switchTab(index) {
+            if (isLoading) return; 
+            currentTab = index;
+            
+            // Cập nhật giao diện thanh Tab
+            for(let i = 0; i < 4; i++) {
+                const tab = document.getElementById(`tab-${i}`);
+                if (i === currentTab) {
+                    tab.className = "flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-orange-500 text-orange-600 bg-orange-50 transition-colors flex flex-col items-center justify-center gap-1";
+                } else {
+                    tab.className = "flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-transparent text-slate-500 hover:bg-slate-50 transition-colors flex flex-col items-center justify-center gap-1";
+                }
+            }
+            
+            // Render lại bảng ngay lập tức bằng dữ liệu của tab đó
+            updateUI();
+            
+            // Lấy dữ liệu mới nhất
+            fetchData();
+        }
+
         function parseData(text) {
             const lines = text.split('\n');
             const result = [];
@@ -149,93 +215,138 @@
                 }
 
                 if (!isNaN(score)) {
-                    result.push({
-                        id: i.toString(),
-                        name,
-                        score,
-                        time: timeStr,
-                        timeSec
-                    });
+                    result.push({ id: i.toString(), name, score, time: timeStr, timeSec });
                 }
             }
             return result;
         }
 
-        // Cập nhật giao diện theo trạng thái
+        function calculateTotalData() {
+            const map = new Map();
+            
+            // Gom dữ liệu từ 3 vòng
+            for (let i = 0; i < 3; i++) {
+                const roundData = teamsData[i] || [];
+                roundData.forEach(team => {
+                    // Dùng tên làm khóa (không phân biệt hoa/thường để gom chính xác)
+                    const key = team.name.trim().toLowerCase(); 
+                    if (!map.has(key)) {
+                        map.set(key, { 
+                            id: team.id + '_total', 
+                            name: team.name, // Giữ nguyên cách viết của lần xuất hiện đầu
+                            score: 0, 
+                            timeSec: 0 
+                        });
+                    }
+                    const aggregated = map.get(key);
+                    aggregated.score += team.score;
+                    aggregated.timeSec += team.timeSec;
+                });
+            }
+
+            // Chuyển lại thời gian ra định dạng MM:SS
+            const aggregatedArray = Array.from(map.values()).map(team => {
+                const m = Math.floor(team.timeSec / 60);
+                const s = team.timeSec % 60;
+                team.time = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                return team;
+            });
+
+            teamsData[3] = aggregatedArray;
+            errorsData[3] = '';
+            lastUpdatedData[3] = new Date();
+        }
+
         function updateUI() {
-            // Hiển thị nút refresh
+            const currentTeams = teamsData[currentTab];
+            const currentError = errorsData[currentTab];
+            const currentLastUpdated = lastUpdatedData[currentTab];
+
+            if (currentTab === 3) {
+                els.footerInfo.textContent = "Hệ thống tự động cộng dồn điểm và thời gian của các nhóm có tên trùng nhau ở cả 3 vòng.";
+            } else {
+                els.footerInfo.textContent = "Dữ liệu lưu độc lập theo từng vòng. Chống lỗi máy chủ Google (có thể trễ 2-3 phút).";
+            }
+
             if (isLoading) {
                 els.refreshIcon.classList.add('animate-spin');
                 els.refreshBtn.disabled = true;
                 els.autoRefreshIcon.classList.remove('animate-spin');
             } else {
                 els.refreshIcon.classList.remove('animate-spin');
-                els.refreshBtn.disabled = !GOOGLE_SHEET_URL;
+                els.refreshBtn.disabled = false;
                 if (isAutoRefresh) els.autoRefreshIcon.classList.add('animate-spin');
             }
 
-            // Nút Auto Refresh
             if (isAutoRefresh) {
-                els.autoRefreshBtn.className = "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all bg-emerald-100 text-emerald-700";
+                els.autoRefreshBtn.className = "flex items-center gap-1 sm:gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-emerald-100 text-emerald-700";
                 els.autoRefreshText.textContent = "Auto: BẬT";
             } else {
-                els.autoRefreshBtn.className = "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all bg-slate-100 text-slate-600";
+                els.autoRefreshBtn.className = "flex items-center gap-1 sm:gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-slate-100 text-slate-600";
                 els.autoRefreshText.textContent = "Auto: TẮT";
                 els.autoRefreshIcon.classList.remove('animate-spin');
             }
 
-            // Hiển thị trạng thái mạng nhỏ gọn
-            if (error && teams.length > 0) {
-                // Nếu bị lỗi nhưng đã có data, không sập bảng mà chỉ hiện cảnh báo đỏ
-                els.lastUpdatedContainer.className = "text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full flex items-center gap-1";
-                els.lastUpdatedContainer.innerHTML = `<i data-lucide="alert-triangle" class="w-3 h-3"></i><span>Dùng bộ nhớ tạm do mạng chập chờn</span>`;
-                lucide.createIcons();
-            } else if (lastUpdated) {
-                els.lastUpdatedContainer.className = "text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full flex items-center gap-1";
-                els.lastUpdatedContainer.innerHTML = `<i data-lucide="check-circle-2" class="w-3 h-3"></i><span>Cập nhật: ${lastUpdated.toLocaleTimeString()}</span>`;
-                lucide.createIcons();
+            if (currentError && currentTeams.length > 0) {
+                els.lastUpdatedContainer.className = "text-[10px] sm:text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full flex items-center gap-1";
+                els.lastUpdatedContainer.innerHTML = `<i data-lucide="alert-triangle" class="w-3 h-3"></i><span>Bộ nhớ tạm</span>`;
+            } else if (currentLastUpdated) {
+                els.lastUpdatedContainer.className = "text-[10px] sm:text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full flex items-center gap-1";
+                els.lastUpdatedContainer.innerHTML = `<i data-lucide="check-circle-2" class="w-3 h-3"></i><span class="hidden sm:inline">Cập nhật: </span><span>${currentLastUpdated.toLocaleTimeString()}</span>`;
             } else {
                 els.lastUpdatedContainer.className = "hidden";
             }
+            lucide.createIcons();
 
-            // Các trạng thái màn hình (Ẩn hết trước, hiện sau)
+            // Quản lý hiển thị các vùng
             els.errorState.classList.add('hidden');
             els.loadingState.classList.add('hidden');
             els.emptyState.classList.add('hidden');
             els.tableState.classList.add('hidden');
             els.tableState.classList.remove('flex'); 
 
-            if (error && teams.length === 0) {
+            if (currentError && currentTeams.length === 0) {
                 els.errorState.classList.remove('hidden');
                 els.errorState.classList.add('flex');
-                els.errorMessage.textContent = error;
-            } else if (isLoading && teams.length === 0) {
+                els.errorMessage.textContent = currentError;
+            } else if (isLoading && currentTeams.length === 0) {
                 els.loadingState.classList.remove('hidden');
                 els.loadingState.classList.add('flex');
-            } else if (teams.length === 0) {
+            } else if (currentTeams.length === 0) {
                 els.emptyState.classList.remove('hidden');
                 els.emptyState.classList.add('flex');
             } else {
                 els.tableState.classList.remove('hidden');
                 els.tableState.classList.add('flex');
-                renderTableBody();
+                renderTableBody(currentTeams);
             }
         }
 
-        // Tạo nội dung bảng
-        function renderTableBody() {
-            // SẮP XẾP: Điểm cao trước -> Thời gian ngắn trước
-            const sortedTeams = [...teams].sort((a, b) => {
+        function renderTableBody(teamsList) {
+            const sortedTeams = [...teamsList].sort((a, b) => {
                 if (b.score !== a.score) return b.score - a.score;
                 return (a.timeSec || 99999) - (b.timeSec || 99999);
             });
 
             els.tableBody.innerHTML = sortedTeams.map((team, index) => {
                 let rankIcon = '';
-                if (index === 0) rankIcon = `<i data-lucide="trophy" class="text-yellow-500 w-7 h-7 drop-shadow-md"></i>`;
-                else if (index === 1) rankIcon = `<i data-lucide="medal" class="text-gray-400 w-7 h-7 drop-shadow-md"></i>`;
-                else if (index === 2) rankIcon = `<i data-lucide="medal" class="text-amber-700 w-7 h-7 drop-shadow-md"></i>`;
-                else rankIcon = `<span class="text-slate-500 font-bold w-7 text-center text-lg">${index + 1}</span>`;
+                if (index === 0) {
+                    rankIcon = `<i data-lucide="trophy" class="text-yellow-500 w-6 h-6 sm:w-7 sm:h-7 drop-shadow-md"></i>`;
+                } else if (index === 1) {
+                    rankIcon = `
+                        <div class="relative flex justify-center w-6 h-6 sm:w-7 sm:h-7">
+                            <i data-lucide="award" class="text-slate-400 w-6 h-6 sm:w-7 sm:h-7 drop-shadow-md"></i>
+                            <span class="absolute top-[3px] sm:top-[4px] text-[10px] sm:text-[11px] font-black text-slate-700">2</span>
+                        </div>`;
+                } else if (index === 2) {
+                    rankIcon = `
+                        <div class="relative flex justify-center w-6 h-6 sm:w-7 sm:h-7">
+                            <i data-lucide="award" class="text-amber-600 w-6 h-6 sm:w-7 sm:h-7 drop-shadow-md"></i>
+                            <span class="absolute top-[3px] sm:top-[4px] text-[10px] sm:text-[11px] font-black text-amber-900">3</span>
+                        </div>`;
+                } else {
+                    rankIcon = `<span class="text-slate-500 font-bold w-6 sm:w-7 text-center text-sm sm:text-lg">${index + 1}</span>`;
+                }
 
                 let rowStyle = "bg-white border-l-4 border-transparent hover:bg-slate-50";
                 if (index === 0) rowStyle = "bg-yellow-50 border-l-4 border-yellow-500 hover:bg-yellow-100 scale-[1.01] shadow-sm z-10 relative";
@@ -251,22 +362,22 @@
 
                 return `
                     <tr class="transition-all duration-300 ${rowStyle}">
-                        <td class="py-4 px-4 text-center">
+                        <td class="py-3 px-2 sm:py-4 sm:px-4 text-center">
                             <div class="flex justify-center items-center">
                                 ${rankIcon}
                             </div>
                         </td>
-                        <td class="py-4 px-4">
-                            <span class="font-black text-lg ${nameStyle}">${team.name}</span>
+                        <td class="py-3 px-2 sm:py-4 sm:px-4">
+                            <span class="font-black text-sm sm:text-lg ${nameStyle}">${team.name}</span>
                         </td>
-                        <td class="py-4 px-4 text-center">
-                            <span class="inline-flex items-center justify-center gap-1.5 bg-slate-100 text-slate-600 font-bold px-3 py-1.5 rounded-lg text-sm min-w-[80px]">
-                                <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i>
+                        <td class="py-3 px-2 sm:py-4 sm:px-4 text-center">
+                            <span class="inline-flex items-center justify-center gap-1 sm:gap-1.5 bg-slate-100 text-slate-600 font-bold px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm min-w-[60px] sm:min-w-[80px]">
+                                <i data-lucide="clock" class="w-3 h-3 sm:w-4 sm:h-4 text-slate-400"></i>
                                 ${team.time}
                             </span>
                         </td>
-                        <td class="py-4 px-4 text-center">
-                            <span class="inline-block font-black px-4 py-1.5 rounded-xl text-xl shadow-sm border ${scoreStyle}">
+                        <td class="py-3 px-2 sm:py-4 sm:px-4 text-center">
+                            <span class="inline-block font-black px-3 py-1 sm:px-4 sm:py-1.5 rounded-xl text-base sm:text-xl shadow-sm border ${scoreStyle}">
                                 ${team.score}
                             </span>
                         </td>
@@ -277,79 +388,107 @@
             lucide.createIcons();
         }
 
-        // Tải dữ liệu
-        async function fetchData() {
-            if (!GOOGLE_SHEET_URL) return;
+        async function fetchRoundData(roundIndex) {
+            const currentUrl = ROUNDS_CONFIG[roundIndex].url;
+            if (!currentUrl || currentUrl.includes("DÁN_LINK")) {
+                throw new Error(`Vui lòng cấu hình link TSV của Google Sheet cho Vòng ${roundIndex + 1}.`);
+            }
 
+            const fetchUrl = `${currentUrl}${currentUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+            const res = await fetch(fetchUrl);
+            if (!res.ok) throw new Error('Không thể kết nối đến Google.');
+            
+            const text = await res.text();
+            if (text.toLowerCase().includes('<!doctype html>')) {
+                throw new Error('Định dạng không hợp lệ.');
+            }
+            return parseData(text);
+        }
+
+        async function fetchData() {
             isLoading = true;
-            error = '';
+            errorsData[currentTab] = '';
             updateUI();
 
             try {
-                // Thêm thời gian vào link để chống lưu cache của trình duyệt
-                const fetchUrl = `${GOOGLE_SHEET_URL}${GOOGLE_SHEET_URL.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
-                
-                const res = await fetch(fetchUrl);
-                if (!res.ok) throw new Error('Không thể kết nối đến Google.');
-                
-                const text = await res.text();
-                if (text.toLowerCase().includes('<!doctype html>')) {
-                    throw new Error('Định dạng không hợp lệ.');
-                }
+                if (currentTab === 3) {
+                    // Cập nhật tất cả các vòng để tính Tổng
+                    const fetchPromises = ROUNDS_CONFIG.map(async (config, idx) => {
+                        try {
+                            const parsedData = await fetchRoundData(idx);
+                            
+                            // Kiểm tra thiếu dữ liệu (CDN Cache Bouncing)
+                            let isMissingData = false;
+                            const existingTeams = teamsData[idx];
+                            if (existingTeams.length > 0) {
+                                const newKeys = new Set(parsedData.map(t => t.name + '|' + t.score + '|' + t.time));
+                                for (const t of existingTeams) {
+                                    if (!newKeys.has(t.name + '|' + t.score + '|' + t.time)) {
+                                        isMissingData = true; break;
+                                    }
+                                }
+                            }
 
-                const parsedData = parseData(text);
+                            if (isMissingData) {
+                                staleCounts[idx]++;
+                                if (staleCounts[idx] < 4) return; // Bỏ qua nếu là dữ liệu rác
+                            }
 
-                // --- BỘ NHỚ THÔNG MINH CHỐNG LỖI GOOGLE CDN ---
-                // Kiểm tra xem dữ liệu mới có bị "thiếu người" so với màn hình hiện tại không
-                let isMissingData = false;
-                if (teams.length > 0) {
-                    const newKeys = new Set(parsedData.map(t => t.name + '|' + t.score + '|' + t.time));
-                    for (const t of teams) {
-                        if (!newKeys.has(t.name + '|' + t.score + '|' + t.time)) {
-                            isMissingData = true;
-                            break;
+                            staleCounts[idx] = 0;
+                            teamsData[idx] = parsedData;
+                            localStorage.setItem(`wall_leaderboard_cache_${idx}`, JSON.stringify(teamsData[idx]));
+                            lastUpdatedData[idx] = new Date();
+                        } catch (e) {
+                            // Lỗi ở một vòng nào đó thì bỏ qua, vẫn dùng cache cũ để cộng tổng
+                        }
+                    });
+
+                    await Promise.all(fetchPromises);
+                    calculateTotalData();
+                } else {
+                    // Chỉ cập nhật vòng đang xem
+                    const parsedData = await fetchRoundData(currentTab);
+                    
+                    let isMissingData = false;
+                    const existingTeams = teamsData[currentTab];
+                    if (existingTeams.length > 0) {
+                        const newKeys = new Set(parsedData.map(t => t.name + '|' + t.score + '|' + t.time));
+                        for (const t of existingTeams) {
+                            if (!newKeys.has(t.name + '|' + t.score + '|' + t.time)) {
+                                isMissingData = true; break;
+                            }
                         }
                     }
-                }
 
-                if (isMissingData) {
-                    staleCount++;
-                    // Chờ 3 chu kỳ (khoảng 1.5 phút) để xác nhận xem giáo viên có thật sự xóa điểm không
-                    // Nếu chưa tới 3 lần, từ chối bản mới bị thiếu và dùng lại bản đầy đủ trên màn hình
-                    if (staleCount < 4) {
-                        console.log("Phát hiện Google phân phối bản cũ, sử dụng lại bộ nhớ máy...");
-                        isLoading = false;
-                        updateUI();
-                        return;
+                    if (isMissingData) {
+                        staleCounts[currentTab]++;
+                        if (staleCounts[currentTab] < 4) {
+                            isLoading = false;
+                            updateUI();
+                            return;
+                        }
                     }
-                }
 
-                // Nếu an toàn hoặc đã qua 3 lần chờ
-                staleCount = 0;
-                teams = parsedData;
-                
-                // Lưu ngầm xuống máy tính (khi load lại trang cũng không bị mất)
-                localStorage.setItem('wall_leaderboard_cache', JSON.stringify(teams));
-                lastUpdated = new Date();
-                
+                    staleCounts[currentTab] = 0;
+                    teamsData[currentTab] = parsedData;
+                    localStorage.setItem(`wall_leaderboard_cache_${currentTab}`, JSON.stringify(teamsData[currentTab]));
+                    lastUpdatedData[currentTab] = new Date();
+                }
             } catch (err) {
-                error = err.message || 'Có lỗi mạng.';
+                errorsData[currentTab] = err.message || 'Có lỗi mạng.';
             } finally {
                 isLoading = false;
                 updateUI();
             }
         }
 
-        // Quản lý Timer làm mới
         function setupInterval() {
             if (intervalId) clearInterval(intervalId);
-            if (isAutoRefresh && GOOGLE_SHEET_URL) {
-                // Tự động làm mới 30 giây một lần
+            if (isAutoRefresh) {
                 intervalId = setInterval(fetchData, 30000); 
             }
         }
 
-        // Gắn sự kiện
         els.refreshBtn.addEventListener('click', fetchData);
         
         els.autoRefreshBtn.addEventListener('click', () => {
