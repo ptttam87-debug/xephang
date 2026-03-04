@@ -22,10 +22,7 @@
                     <h1 class="text-2xl font-black text-slate-800 uppercase tracking-wide">Bảng Xếp Hạng</h1>
                     <div class="text-sm font-medium text-slate-500 flex items-center gap-2">
                         Trực tiếp từ Google Sheet 
-                        <span id="last-updated-container" class="hidden text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <i data-lucide="check-circle-2" class="w-3 h-3"></i>
-                            <span id="last-updated-text"></span>
-                        </span>
+                        <div id="last-updated-container" class="hidden"></div>
                     </div>
                 </div>
             </div>
@@ -44,7 +41,7 @@
         <!-- Bảng Xếp Hạng -->
         <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100 relative">
             
-            <!-- Trạng thái Lỗi -->
+            <!-- Trạng thái Lỗi (Chỉ hiện khi chưa có data nào) -->
             <div id="error-state" class="hidden flex flex-col items-center justify-center h-80 text-slate-400 space-y-4 bg-slate-50">
                 <i data-lucide="alert-triangle" class="w-16 h-16 text-red-400"></i>
                 <p class="font-bold text-xl text-slate-600">Lỗi kết nối</p>
@@ -60,25 +57,35 @@
             <!-- Trạng thái Trống -->
             <div id="empty-state" class="hidden flex flex-col items-center justify-center h-80 text-slate-400 space-y-3">
                 <i data-lucide="alert-triangle" class="w-12 h-12 text-slate-300"></i>
-                <p class="font-medium text-lg">Không tìm thấy dữ liệu hợp lệ</p>
-                <p class="text-sm">Hãy kiểm tra lại định dạng file Google Sheet của bạn.</p>
+                <p class="font-medium text-lg">Chưa có ai hoàn thành thử thách</p>
+                <p class="text-sm">Hãy chờ học sinh đầu tiên nộp bài nhé!</p>
             </div>
 
             <!-- Bảng Dữ Liệu -->
-            <div id="table-state" class="hidden overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-800 text-white text-sm uppercase tracking-wider">
-                            <th class="py-4 px-4 font-bold w-20 text-center rounded-tl-xl">Hạng</th>
-                            <th class="py-4 px-4 font-bold">Tên Nhóm / Tuyển Thủ</th>
-                            <th class="py-4 px-4 font-bold text-center">Thời Gian</th>
-                            <th class="py-4 px-4 font-bold text-center rounded-tr-xl">Điểm Số</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body" class="divide-y divide-slate-100 bg-white relative">
-                        <!-- Nội dung bảng sẽ được chèn bằng JS -->
-                    </tbody>
-                </table>
+            <div id="table-state" class="hidden flex-col">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-800 text-white text-sm uppercase tracking-wider">
+                                <th class="py-4 px-4 font-bold w-20 text-center rounded-tl-xl">Hạng</th>
+                                <th class="py-4 px-4 font-bold">Tên Nhóm / Tuyển Thủ</th>
+                                <th class="py-4 px-4 font-bold text-center">Thời Gian</th>
+                                <th class="py-4 px-4 font-bold text-center rounded-tr-xl">Điểm Số</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-slate-100 bg-white relative">
+                            <!-- Nội dung bảng sẽ được chèn bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Thông báo giải thích độ trễ của Google Sheet -->
+                <div class="bg-blue-50/50 p-4 text-sm text-blue-700 flex justify-between items-center border-t border-blue-100">
+                    <p class="flex items-center gap-2">
+                        <i data-lucide="info" class="w-4 h-4 text-blue-500"></i>
+                        <span><b>Lưu ý:</b> Dữ liệu tự động được lưu để chống lỗi máy chủ. Google có thể trễ vài phút.</span>
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -90,8 +97,9 @@
         // Cấu hình
         const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHO1TnlzHfMUWQsk0cm-Yc_cSV1o0CLZEqmzv59qWc-RSNbTcvVlgp7qfMfFLYw0gSEpVmfE41y7OQ/pub?output=tsv";
         
-        // Trạng thái ứng dụng
-        let teams = [];
+        // Trạng thái ứng dụng (Dùng LocalStorage làm bộ nhớ đệm thông minh)
+        let teams = JSON.parse(localStorage.getItem('wall_leaderboard_cache') || '[]');
+        let staleCount = 0; // Đếm số lần nhận được bản cache cũ
         let isLoading = false;
         let error = '';
         let lastUpdated = null;
@@ -106,7 +114,6 @@
             refreshBtn: document.getElementById('refresh-btn'),
             refreshIcon: document.getElementById('refresh-icon'),
             lastUpdatedContainer: document.getElementById('last-updated-container'),
-            lastUpdatedText: document.getElementById('last-updated-text'),
             
             errorState: document.getElementById('error-state'),
             errorMessage: document.getElementById('error-message'),
@@ -177,19 +184,28 @@
                 els.autoRefreshIcon.classList.remove('animate-spin');
             }
 
-            // Thời gian cập nhật
-            if (lastUpdated) {
-                els.lastUpdatedContainer.classList.remove('hidden');
-                els.lastUpdatedText.textContent = `Cập nhật: ${lastUpdated.toLocaleTimeString()}`;
+            // Hiển thị trạng thái mạng nhỏ gọn
+            if (error && teams.length > 0) {
+                // Nếu bị lỗi nhưng đã có data, không sập bảng mà chỉ hiện cảnh báo đỏ
+                els.lastUpdatedContainer.className = "text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full flex items-center gap-1";
+                els.lastUpdatedContainer.innerHTML = `<i data-lucide="alert-triangle" class="w-3 h-3"></i><span>Dùng bộ nhớ tạm do mạng chập chờn</span>`;
+                lucide.createIcons();
+            } else if (lastUpdated) {
+                els.lastUpdatedContainer.className = "text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full flex items-center gap-1";
+                els.lastUpdatedContainer.innerHTML = `<i data-lucide="check-circle-2" class="w-3 h-3"></i><span>Cập nhật: ${lastUpdated.toLocaleTimeString()}</span>`;
+                lucide.createIcons();
+            } else {
+                els.lastUpdatedContainer.className = "hidden";
             }
 
-            // Các trạng thái màn hình
+            // Các trạng thái màn hình (Ẩn hết trước, hiện sau)
             els.errorState.classList.add('hidden');
             els.loadingState.classList.add('hidden');
             els.emptyState.classList.add('hidden');
             els.tableState.classList.add('hidden');
+            els.tableState.classList.remove('flex'); 
 
-            if (error) {
+            if (error && teams.length === 0) {
                 els.errorState.classList.remove('hidden');
                 els.errorState.classList.add('flex');
                 els.errorMessage.textContent = error;
@@ -201,6 +217,7 @@
                 els.emptyState.classList.add('flex');
             } else {
                 els.tableState.classList.remove('hidden');
+                els.tableState.classList.add('flex');
                 renderTableBody();
             }
         }
@@ -257,7 +274,6 @@
                 `;
             }).join('');
 
-            // Khởi tạo lại các icon vừa được chèn vào
             lucide.createIcons();
         }
 
@@ -273,21 +289,51 @@
                 // Thêm thời gian vào link để chống lưu cache của trình duyệt
                 const fetchUrl = `${GOOGLE_SHEET_URL}${GOOGLE_SHEET_URL.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
                 
-                // Trực tiếp gọi Google Sheet (chạy hoàn hảo trên GitHub)
                 const res = await fetch(fetchUrl);
-                
-                if (!res.ok) throw new Error('Không thể tải dữ liệu từ Google Sheet.');
+                if (!res.ok) throw new Error('Không thể kết nối đến Google.');
                 
                 const text = await res.text();
-                
                 if (text.toLowerCase().includes('<!doctype html>')) {
-                    throw new Error('Liên kết không đúng định dạng. Hãy đảm bảo bạn đã công bố chính xác.');
+                    throw new Error('Định dạng không hợp lệ.');
                 }
 
-                teams = parseData(text);
+                const parsedData = parseData(text);
+
+                // --- BỘ NHỚ THÔNG MINH CHỐNG LỖI GOOGLE CDN ---
+                // Kiểm tra xem dữ liệu mới có bị "thiếu người" so với màn hình hiện tại không
+                let isMissingData = false;
+                if (teams.length > 0) {
+                    const newKeys = new Set(parsedData.map(t => t.name + '|' + t.score + '|' + t.time));
+                    for (const t of teams) {
+                        if (!newKeys.has(t.name + '|' + t.score + '|' + t.time)) {
+                            isMissingData = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (isMissingData) {
+                    staleCount++;
+                    // Chờ 3 chu kỳ (khoảng 1.5 phút) để xác nhận xem giáo viên có thật sự xóa điểm không
+                    // Nếu chưa tới 3 lần, từ chối bản mới bị thiếu và dùng lại bản đầy đủ trên màn hình
+                    if (staleCount < 4) {
+                        console.log("Phát hiện Google phân phối bản cũ, sử dụng lại bộ nhớ máy...");
+                        isLoading = false;
+                        updateUI();
+                        return;
+                    }
+                }
+
+                // Nếu an toàn hoặc đã qua 3 lần chờ
+                staleCount = 0;
+                teams = parsedData;
+                
+                // Lưu ngầm xuống máy tính (khi load lại trang cũng không bị mất)
+                localStorage.setItem('wall_leaderboard_cache', JSON.stringify(teams));
                 lastUpdated = new Date();
+                
             } catch (err) {
-                error = err.message || 'Có lỗi xảy ra. Vui lòng kiểm tra lại kết nối mạng.';
+                error = err.message || 'Có lỗi mạng.';
             } finally {
                 isLoading = false;
                 updateUI();
@@ -298,8 +344,8 @@
         function setupInterval() {
             if (intervalId) clearInterval(intervalId);
             if (isAutoRefresh && GOOGLE_SHEET_URL) {
-                // Tự động làm mới mỗi 10 giây (vì không qua proxy nên có thể cho load nhanh)
-                intervalId = setInterval(fetchData, 10000); 
+                // Tự động làm mới 30 giây một lần
+                intervalId = setInterval(fetchData, 30000); 
             }
         }
 
