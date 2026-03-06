@@ -42,7 +42,7 @@
             </button>
             <button id="tab-1" class="flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-transparent text-slate-500 hover:bg-slate-50 transition-colors flex flex-col items-center justify-center gap-1" onclick="switchTab(1)">
                 <i data-lucide="map" class="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block"></i>
-                <span>Vòng 2 (Firebase)</span>
+                <span>Vòng 2</span>
             </button>
             <button id="tab-2" class="flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-transparent text-slate-500 hover:bg-slate-50 transition-colors flex flex-col items-center justify-center gap-1" onclick="switchTab(2)">
                 <i data-lucide="flag" class="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block"></i>
@@ -117,10 +117,9 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         
-        // Tạo hàm toàn cục để script chính gọi được
         window.getFirebaseRound2Data = async function() {
-            // LƯU Ý 1: Nếu bảng điểm của bạn không tên là "scores", hãy đổi lại ở dòng dưới đây (ví dụ "users" hoặc "vong2")
-            const dbRef = ref(db, "scores"); 
+            // Đã cập nhật đúng thư mục trên Firebase
+            const dbRef = ref(db, "vuot_me_cung_leaderboard"); 
             const snapshot = await get(dbRef);
             const result = [];
             
@@ -129,7 +128,6 @@
                 snapshot.forEach((childSnapshot) => {
                     const data = childSnapshot.val();
                     
-                    // LƯU Ý 2: Xử lý thời gian - Mình đã viết sẵn logic bắt cả dạng giây và chuỗi phút:giây
                     let timeStr = data.time || '00:00';
                     let timeSec = data.timeSec || 99999;
                     
@@ -143,7 +141,6 @@
                         timeSec = parseInt(parts[0] || 0, 10) * 60 + parseInt(parts[1] || 0, 10);
                     }
                     
-                    // LƯU Ý 3: Đảm bảo tên các trường này khớp với trên Firebase của bạn
                     result.push({
                         id: i.toString(),
                         name: data.name || data.ten || 'Ẩn danh', 
