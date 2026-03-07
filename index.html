@@ -18,7 +18,7 @@
                 <div>
                     <h1 class="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-wide">Bảng Xếp Hạng</h1>
                     <div class="text-xs sm:text-sm font-medium text-slate-500 flex items-center gap-2 mt-1">
-                        Dữ liệu Trực tiếp
+                        Dữ liệu Trực tiếp (Firebase)
                         <div id="last-updated-container" class="hidden"></div>
                     </div>
                 </div>
@@ -38,15 +38,15 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-row">
             <button id="tab-0" class="flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-orange-500 text-orange-600 bg-orange-50 transition-colors flex flex-col items-center justify-center gap-1" onclick="switchTab(0)">
                 <i data-lucide="blocks" class="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block"></i>
-                <span>Vòng 1 </span>
+                <span>Vòng 1</span>
             </button>
             <button id="tab-1" class="flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-transparent text-slate-500 hover:bg-slate-50 transition-colors flex flex-col items-center justify-center gap-1" onclick="switchTab(1)">
                 <i data-lucide="map" class="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block"></i>
-                <span>Vòng 2 </span>
+                <span>Vòng 2</span>
             </button>
             <button id="tab-2" class="flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-transparent text-slate-500 hover:bg-slate-50 transition-colors flex flex-col items-center justify-center gap-1" onclick="switchTab(2)">
                 <i data-lucide="flag" class="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block"></i>
-                <span>Vòng 3 </span>
+                <span>Vòng 3</span>
             </button>
             <button id="tab-3" class="flex-1 py-3 sm:py-4 px-1 text-center font-bold text-[11px] sm:text-sm border-b-4 border-transparent text-slate-500 hover:bg-slate-50 transition-colors flex flex-col items-center justify-center gap-1" onclick="switchTab(3)">
                 <i data-lucide="calculator" class="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block text-orange-500"></i>
@@ -70,8 +70,7 @@
                 <i data-lucide="inbox" class="w-12 h-12 text-slate-300"></i>
                 <p class="font-medium text-lg">Chưa có dữ liệu</p>
                 <p class="text-sm">Chưa có đội nào nộp bài hoặc dữ liệu đang trống.</p>
-                <p id="debug-text" class="text-xs font-mono text-red-600 bg-red-50 p-3 mt-4 rounded-lg border border-red-200 break-words hidden max-w-2xl text-left"></p>
-            </div>
+                </div>
 
             <div id="table-state" class="hidden flex-col">
                 <div class="overflow-x-auto">
@@ -129,24 +128,22 @@
         
         // --- HÀM LẤY VÀ LỌC DỮ LIỆU CHUNG ---
         window.getFirebaseData = async function(roundIndex) {
-            let db, path, dbName;
+            let db, path;
             if (roundIndex === 0) {
-                db = dbV1; path = "leaderboard"; dbName = "VÒNG 1";
+                db = dbV1; path = "leaderboard";
             } else if (roundIndex === 1) {
-                db = dbV2; path = "vuot_me_cung_leaderboard"; dbName = "VÒNG 2";
+                db = dbV2; path = "vuot_me_cung_leaderboard";
             } else if (roundIndex === 2) {
-                db = dbV3; path = "leaderboard"; dbName = "VÒNG 3";
+                db = dbV3; path = "leaderboard";
             }
 
             const snapshot = await get(ref(db, path));
             const result = [];
-            let sampleData = null; 
 
             if (snapshot.exists()) {
                 let i = 1;
                 snapshot.forEach((childSnapshot) => {
                     const data = childSnapshot.val();
-                    if (i === 1) sampleData = data; 
                     
                     if (typeof data !== 'object') return; 
 
@@ -183,12 +180,9 @@
                     i++;
                 });
 
-                if (result.length === 0 && sampleData) {
-                    return { result: [], debug: `[DEBUG ${dbName}] Dữ liệu bị sai tên biến. Cấu trúc mẫu: ` + JSON.stringify(sampleData) };
-                }
-                return { result: result, debug: "" };
+                return { result: result };
             } else {
-                return { result: [], debug: `[DEBUG ${dbName}] Thư mục đang trống.` };
+                return { result: [] };
             }
         };
     </script>
@@ -205,7 +199,6 @@
         ];
         let lastUpdatedData = [null, null, null, null];
         let errorsData = ['', '', '', ''];
-        let debugMessages = ['', '', '', ''];
         
         let isLoading = false;
         let isAutoRefresh = true;
@@ -218,7 +211,7 @@
                 const roundData = teamsData[i] || [];
                 const bestInRound = new Map();
                 
-                // 1. Tìm điểm cao nhất của từng đội trong 1 vòng
+                // Tìm điểm cao nhất của từng đội trong 1 vòng
                 roundData.forEach(team => {
                     const key = team.name.trim().toLowerCase(); 
                     if (!bestInRound.has(key)) {
@@ -231,7 +224,7 @@
                     }
                 });
 
-                // 2. Cộng dồn vào Tổng
+                // Cộng dồn vào Tổng
                 bestInRound.forEach((bestTeam, key) => {
                     if (!map.has(key)) {
                         map.set(key, { id: bestTeam.id + '_total', name: bestTeam.name, score: 0, timeSec: 0 });
@@ -242,7 +235,7 @@
                 });
             }
 
-            // 3. Quy đổi lại định dạng Thời Gian chuẩn để hiển thị
+            // Quy đổi lại định dạng Thời Gian chuẩn để hiển thị
             const aggregatedArray = Array.from(map.values()).map(team => {
                 const m = Math.floor(team.timeSec / 60);
                 const s = team.timeSec % 60;
@@ -291,7 +284,6 @@
             const currentTeams = teamsData[currentTab];
             const currentError = errorsData[currentTab];
             const currentLastUpdated = lastUpdatedData[currentTab];
-            const currentDebug = debugMessages[currentTab];
 
             if (currentTab === 3) {
                 els.footerInfo.innerHTML = "Hệ thống tự động lấy <b>điểm cao nhất</b> của mỗi đội ở từng vòng để cộng lại thành tổng.";
@@ -345,14 +337,6 @@
             } else if (currentTeams.length === 0) {
                 els.emptyState.classList.remove('hidden');
                 els.emptyState.classList.add('flex');
-                
-                const debugEl = document.getElementById('debug-text');
-                if (currentDebug) {
-                    debugEl.textContent = currentDebug;
-                    debugEl.classList.remove('hidden');
-                } else {
-                    debugEl.classList.add('hidden');
-                }
             } else {
                 els.tableState.classList.remove('hidden');
                 els.tableState.classList.add('flex');
@@ -415,10 +399,8 @@
                         try {
                             if (window.getFirebaseData) {
                                 const fbData = await window.getFirebaseData(idx);
-                                if (fbData.result.length > 0) {
-                                    teamsData[idx] = fbData.result;
-                                    localStorage.setItem(`wall_leaderboard_cache_${idx}`, JSON.stringify(teamsData[idx]));
-                                }
+                                teamsData[idx] = fbData.result;
+                                localStorage.setItem(`wall_leaderboard_cache_${idx}`, JSON.stringify(teamsData[idx]));
                             }
                         } catch (e) {
                             console.error(`Lỗi tải dữ liệu vòng ${idx + 1}:`, e);
@@ -430,11 +412,8 @@
                 } else {
                     if (window.getFirebaseData) {
                         const fbData = await window.getFirebaseData(currentTab);
-                        debugMessages[currentTab] = fbData.debug;
-                        if (fbData.result.length > 0) {
-                            teamsData[currentTab] = fbData.result;
-                            localStorage.setItem(`wall_leaderboard_cache_${currentTab}`, JSON.stringify(teamsData[currentTab]));
-                        }
+                        teamsData[currentTab] = fbData.result;
+                        localStorage.setItem(`wall_leaderboard_cache_${currentTab}`, JSON.stringify(teamsData[currentTab]));
                     }
                     lastUpdatedData[currentTab] = new Date();
                 }
